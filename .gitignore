@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+.auth_secret
+logs/
+log/
+uploads/
+*.log
+

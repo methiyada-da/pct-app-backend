@@ -1,0 +1,29 @@
+Options -Indexes
+
+# Preserve bearer credentials for PHP when Apache does not expose the header.
+SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+
+# Never serve hidden configuration or secret files from the API document root.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Allow only the Flutter Web development origins to read static images under
+# uploads. Other files and origins receive no CORS response header.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # FilesMatch above protects dotfiles; also deny files reached through a
+    # hidden directory such as .git/config.
+    RewriteRule (^|/)\. - [F]
+
+    RewriteRule ^uploads/(?:.*/)?[^/]+\.(?:jpe?g|png|gif|webp)$ - [NC,E=UPLOAD_STATIC_IMAGE:1]
+
+    RewriteCond %{HTTP:Origin} ^(http://localhost:8080|http://127\.0\.0\.1:8080)$
+    RewriteRule ^uploads/(?:.*/)?[^/]+\.(?:jpe?g|png|gif|webp)$ - [NC,E=CORS_ALLOWED_ORIGIN:%1]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "%{CORS_ALLOWED_ORIGIN}e" env=CORS_ALLOWED_ORIGIN
+    Header always merge Vary "Origin" env=UPLOAD_STATIC_IMAGE
+</IfModule>

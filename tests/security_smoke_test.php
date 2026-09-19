@@ -88,6 +88,17 @@ $helperSource = file_get_contents($root . '/helper.php');
 check(!str_contains($helperSource, '.auth_secret'), 'The application must not create or read a webroot .auth_secret fallback.');
 check(str_contains($helperSource, "jsonResponse(['status' => 'error', 'message' => \$error->getMessage()], 400)"), 'Malformed schedules must map to HTTP 400.');
 
+$redactedContext = redactSensitiveContext([
+    'Password' => 'plain-text-password',
+    'profile' => [
+        'api_key' => 'private-api-key',
+        'display_name' => 'Test User',
+    ],
+]);
+check($redactedContext['Password'] === '[REDACTED]', 'Log redaction must be case-insensitive.');
+check($redactedContext['profile']['api_key'] === '[REDACTED]', 'Log redaction must cover nested sensitive values.');
+check($redactedContext['profile']['display_name'] === 'Test User', 'Log redaction must preserve safe values.');
+
 $protected = [
     'get_user.php', 'update_member.php', 'create_tutor.php',
     'create_tutor_course.php', 'update_tutor_course.php',

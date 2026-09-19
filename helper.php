@@ -33,11 +33,20 @@ function jsonResponse(array $body, int $status = 200): never {
     exit;
 }
 
-function safeLog(string $event, array $context = []): void {
-    $blocked = ['password', 'mb_pwd', 'cf_pwd', 'old_pwd', 'token', 'authorization', 'mb_img'];
-    foreach ($blocked as $key) {
-        if (array_key_exists($key, $context)) $context[$key] = '[REDACTED]';
+function redactSensitiveContext(array $context): array {
+    $blocked = ['password', 'mb_pwd', 'cf_pwd', 'old_pwd', 'token', 'authorization', 'mb_img', 'api_key', 'secret'];
+    foreach ($context as $key => $value) {
+        if (is_string($key) && in_array(strtolower($key), $blocked, true)) {
+            $context[$key] = '[REDACTED]';
+        } elseif (is_array($value)) {
+            $context[$key] = redactSensitiveContext($value);
+        }
     }
+    return $context;
+}
+
+function safeLog(string $event, array $context = []): void {
+    $context = redactSensitiveContext($context);
     $logDir = __DIR__ . '/logs';
     if (!is_dir($logDir)) @mkdir($logDir, 0750, true);
     $entry = ['time' => date(DATE_ATOM), 'event' => $event, 'context' => $context];
